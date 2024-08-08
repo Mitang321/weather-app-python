@@ -26,6 +26,15 @@ def create_weather_table():
     conn.close()
 
 
+def create_favorite_table():
+    conn = sqlite3.connect('weather.db')
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS favorites
+                 (username TEXT, city TEXT)''')
+    conn.commit()
+    conn.close()
+
+
 def register_user(username, password):
     conn = sqlite3.connect('weather.db')
     c = conn.cursor()
@@ -103,6 +112,26 @@ def update_history():
     conn.close()
 
 
+def save_favorite():
+    city = city_entry.get()
+    conn = sqlite3.connect('weather.db')
+    c = conn.cursor()
+    c.execute("INSERT INTO favorites VALUES (?, ?)", (current_user, city))
+    conn.commit()
+    conn.close()
+    update_favorites()
+
+
+def update_favorites():
+    conn = sqlite3.connect('weather.db')
+    c = conn.cursor()
+    c.execute("SELECT city FROM favorites WHERE username=?", (current_user,))
+    rows = c.fetchall()
+    favorites = "\n".join([row[0] for row in rows])
+    favorites_label.config(text=f"Favorites:\n{favorites}")
+    conn.close()
+
+
 def login():
     username = username_entry.get()
     password = password_entry.get()
@@ -112,6 +141,7 @@ def login():
         login_frame.pack_forget()
         weather_frame.pack()
         update_history()
+        update_favorites()
     else:
         messagebox.showerror("Error", "Invalid username or password")
 
@@ -148,8 +178,12 @@ result_label = tk.Label(weather_frame, text="")
 result_label.pack()
 history_label = tk.Label(weather_frame, text="Search History:")
 history_label.pack()
+favorites_label = tk.Label(weather_frame, text="Favorites:")
+favorites_label.pack()
+tk.Button(weather_frame, text="Save as Favorite", command=save_favorite).pack()
 
 create_user_table()
 create_weather_table()
+create_favorite_table()
 
 root.mainloop()
