@@ -57,6 +57,15 @@ def authenticate_user(username, password):
     return user
 
 
+def update_user(username, new_username, new_password):
+    conn = sqlite3.connect('weather.db')
+    c = conn.cursor()
+    c.execute("UPDATE users SET username=?, password=? WHERE username=?",
+              (new_username, new_password, username))
+    conn.commit()
+    conn.close()
+
+
 def get_weather(city):
     try:
         response = requests.get(CURRENT_WEATHER_URL, params={
@@ -189,11 +198,23 @@ def register():
     messagebox.showinfo("Success", "User registered successfully")
 
 
+def update_profile():
+    new_username = new_username_entry.get()
+    new_password = new_password_entry.get()
+    update_user(current_user, new_username, new_password)
+    messagebox.showinfo("Success", "Profile updated successfully")
+    current_user = new_username
+    update_history()
+    update_favorites()
+
+
+# Tkinter setup
 root = tk.Tk()
 root.title("Weather App")
 
 current_user = None
 
+# Login Frame
 login_frame = tk.Frame(root)
 tk.Label(login_frame, text="Username:").pack()
 username_entry = tk.Entry(login_frame)
@@ -205,6 +226,7 @@ tk.Button(login_frame, text="Login", command=login).pack()
 tk.Button(login_frame, text="Register", command=register).pack()
 login_frame.pack()
 
+# Weather Frame
 weather_frame = tk.Frame(root)
 tk.Label(weather_frame, text="Enter city name:").pack()
 city_entry = tk.Entry(weather_frame)
@@ -219,6 +241,16 @@ history_label.pack()
 favorites_label = tk.Label(weather_frame, text="Favorites:")
 favorites_label.pack()
 tk.Button(weather_frame, text="Save as Favorite", command=save_favorite).pack()
+
+# Profile Update Frame
+profile_frame = tk.Frame(root)
+tk.Label(profile_frame, text="New Username:").pack()
+new_username_entry = tk.Entry(profile_frame)
+new_username_entry.pack()
+tk.Label(profile_frame, text="New Password:").pack()
+new_password_entry = tk.Entry(profile_frame, show='*')
+new_password_entry.pack()
+tk.Button(profile_frame, text="Update Profile", command=update_profile).pack()
 
 create_user_table()
 create_weather_table()
