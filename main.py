@@ -7,6 +7,7 @@ from tkinter import messagebox
 API_KEY = '33b108f5a8a84cbd8da162728240708'
 CURRENT_WEATHER_URL = 'http://api.weatherapi.com/v1/current.json'
 FORECAST_URL = 'http://api.weatherapi.com/v1/forecast.json'
+ALERT_URL = 'http://api.weatherapi.com/v1/alerts.json'
 
 
 def create_user_table():
@@ -108,6 +109,29 @@ def get_forecast(city):
         return {'error': str(e)}
 
 
+def get_alerts(city):
+    try:
+        response = requests.get(ALERT_URL, params={'key': API_KEY, 'q': city})
+        data = response.json()
+        if 'alerts' in data:
+            alerts = []
+            for alert in data['alerts']:
+                alerts.append({
+                    'headline': alert['headline'],
+                    'msg_type': alert['msg_type'],
+                    'severity': alert['severity'],
+                    'urgency': alert['urgency'],
+                    'areas': alert['areas'],
+                    'description': alert['description'],
+                    'instruction': alert['instruction']
+                })
+            return alerts
+        else:
+            return {'error': 'Alert data not available'}
+    except Exception as e:
+        return {'error': str(e)}
+
+
 def save_weather_to_db(weather):
     conn = sqlite3.connect('weather.db')
     c = conn.cursor()
@@ -132,6 +156,7 @@ def show_weather():
         result_label.config(text=result)
         update_history()
         show_forecast()
+        show_alerts()
 
 
 def show_forecast():
@@ -144,6 +169,18 @@ def show_forecast():
         for day in forecast:
             forecast_result += f"{day['date']} - Max: {day['max_temp']}°C, Min: {day['min_temp']}°C, Condition: {day['condition']}\n"
         forecast_label.config(text=forecast_result)
+
+
+def show_alerts():
+    city = city_entry.get()
+    alerts = get_alerts(city)
+    if 'error' in alerts:
+        alert_label.config(text=alerts['error'])
+    else:
+        alert_result = "Weather Alerts:\n"
+        for alert in alerts:
+            alert_result += f"Headline: {alert['headline']}\nType: {alert['msg_type']}\nSeverity: {alert['severity']}\nUrgency: {alert['urgency']}\nAreas: {alert['areas']}\nDescription: {alert['description']}\nInstructions: {alert['instruction']}\n\n"
+        alert_label.config(text=alert_result)
 
 
 def update_history():
@@ -236,6 +273,8 @@ result_label = tk.Label(weather_frame, text="")
 result_label.pack()
 forecast_label = tk.Label(weather_frame, text="3-Day Forecast:")
 forecast_label.pack()
+alert_label = tk.Label(weather_frame, text="Weather Alerts:")
+alert_label.pack()
 history_label = tk.Label(weather_frame, text="Search History:")
 history_label.pack()
 favorites_label = tk.Label(weather_frame, text="Favorites:")
