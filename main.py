@@ -5,7 +5,8 @@ import tkinter as tk
 from tkinter import messagebox
 
 API_KEY = '33b108f5a8a84cbd8da162728240708'
-BASE_URL = 'http://api.weatherapi.com/v1/current.json'
+CURRENT_WEATHER_URL = 'http://api.weatherapi.com/v1/current.json'
+FORECAST_URL = 'http://api.weatherapi.com/v1/forecast.json'
 
 
 def create_user_table():
@@ -58,7 +59,8 @@ def authenticate_user(username, password):
 
 def get_weather(city):
     try:
-        response = requests.get(BASE_URL, params={'key': API_KEY, 'q': city})
+        response = requests.get(CURRENT_WEATHER_URL, params={
+                                'key': API_KEY, 'q': city})
         data = response.json()
         if 'current' in data:
             weather = {
@@ -72,6 +74,27 @@ def get_weather(city):
             return weather
         else:
             return {'error': 'Weather data not available'}
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def get_forecast(city):
+    try:
+        response = requests.get(FORECAST_URL, params={
+                                'key': API_KEY, 'q': city, 'days': 3})
+        data = response.json()
+        if 'forecast' in data:
+            forecast = []
+            for day in data['forecast']['forecastday']:
+                forecast.append({
+                    'date': day['date'],
+                    'max_temp': day['day']['maxtemp_c'],
+                    'min_temp': day['day']['mintemp_c'],
+                    'condition': day['day']['condition']['text']
+                })
+            return forecast
+        else:
+            return {'error': 'Forecast data not available'}
     except Exception as e:
         return {'error': str(e)}
 
@@ -99,6 +122,19 @@ def show_weather():
         result = f"City: {weather['city']}\nTemperature: {weather['temperature']}°C\nWeather: {weather['description']}\nHumidity: {weather['humidity']}%"
         result_label.config(text=result)
         update_history()
+        show_forecast()
+
+
+def show_forecast():
+    city = city_entry.get()
+    forecast = get_forecast(city)
+    if 'error' in forecast:
+        forecast_label.config(text=forecast['error'])
+    else:
+        forecast_result = "3-Day Forecast:\n"
+        for day in forecast:
+            forecast_result += f"{day['date']} - Max: {day['max_temp']}°C, Min: {day['min_temp']}°C, Condition: {day['condition']}\n"
+        forecast_label.config(text=forecast_result)
 
 
 def update_history():
@@ -176,6 +212,8 @@ city_entry.pack()
 tk.Button(weather_frame, text="Get Weather", command=show_weather).pack()
 result_label = tk.Label(weather_frame, text="")
 result_label.pack()
+forecast_label = tk.Label(weather_frame, text="3-Day Forecast:")
+forecast_label.pack()
 history_label = tk.Label(weather_frame, text="Search History:")
 history_label.pack()
 favorites_label = tk.Label(weather_frame, text="Favorites:")
